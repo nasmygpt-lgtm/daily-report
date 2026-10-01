@@ -138,7 +138,7 @@
 <div class="wrap">
   <header class="app-header">
     <h1>🏨 Daily Travel Agency Visit Report</h1>
-    <p>Paste or type your agency visit notes — get a clean, email-ready report in seconds.</p>
+    <p>Paste your raw agency visit notes — get them auto-formatted in your report style, ready to copy &amp; send.</p>
   </header>
 
   <div class="grid">
@@ -156,8 +156,8 @@
       <div id="tab-bulk">
         <div class="field">
           <label for="bulkInput">Raw visit notes (one block per agency)</label>
-          <textarea id="bulkInput" class="bulk" placeholder="Sunrise Travels&#10;met with ravi, intrested in group booking for 25 pax arriving 12 nov, needs 12 rooms, quoted INR 4500 per night&#10;&#10;Globe Tours&#10;follwup on earlier enquiry, wants deluxe rooms for 4 nights in dec, pricing to be shared&#10;&#10;Horizon Holidays - casual visit, no new leads but they will revert next week"></textarea>
-          <p class="mode-note">Separate agencies with a <strong>blank line</strong>. First line = agency name (or use <code>Agency: Name</code>). You can also write <code>Agency – notes</code> on one line.</p>
+          <textarea id="bulkInput" class="bulk" placeholder="Holidays World – Visited and met operation manager, inquiries slow for Oct/Nov, special rates offered.&#10;&#10;Arabian Journey – Discussed with group incharge&#10;10-23 Nov&#10;5 pax&#10;2 Room + 1 extra bed&#10;offered AED 275+15 with meal charges."></textarea>
+          <p class="mode-note">Write each agency as <code>Agency Name – notes</code> and separate agencies with a <strong>blank line</strong>. Multi-line pax / room / rate blocks under an agency are kept together. All rates, pax, dates &amp; room counts are preserved exactly.</p>
         </div>
         <div class="btn-row">
           <button class="btn btn-primary" id="generateBulk" type="button">Generate Report →</button>
@@ -230,32 +230,36 @@
   //  / room counts / prices stay byte-for-byte identical.
   // ======================================================================
   var SPELLING = {
-    "intrested": "interested", "intersted": "interested",
+    "intrested": "interested", "intersted": "interested", "intersed": "interested",
     "follwup": "follow-up", "followup": "follow-up", "follw": "follow",
-    "enquiry": "inquiry", "enquiries": "inquiries",
+    "enquiry": "inquiry", "enquiries": "inquiries", "enquires": "inquiries",
     "recieve": "receive", "recieved": "received",
     "seperate": "separate", "seperated": "separate",
-    "discuss": "discuss", "discss": "discuss", "discusssed": "discussed", "discussd": "discussed",
+    "discss": "discuss", "discusssed": "discussed", "discussd": "discussed",
+    "disscussed": "discussed", "disscuss": "discuss", "dicussed": "discussed", "dicuss": "discuss",
     "accomodation": "accommodation", "accomdation": "accommodation",
     "availabe": "available", "availble": "available", "avaliable": "available",
-    "confirmd": "confirmed", "confrim": "confirm", "confirmd": "confirmed",
+    "confirmd": "confirmed", "confrim": "confirm",
     "negotiaton": "negotiation", "negotiat": "negotiate",
     "cmpany": "company", "compny": "company",
     "possibe": "possible", "possiblity": "possibility",
-    "requirment": "requirement", "requirements": "requirements", "requirment": "requirement",
+    "requirment": "requirement",
     "aproached": "approached", "approch": "approach",
     "quotd": "quoted", "qoute": "quote", "qouted": "quoted",
     "revrt": "revert", "reverrt": "revert",
     "nxt": "next", "wk": "week",
-    "intersed": "interested",
     "mgmt": "management", "mgr": "manager",
-    "approx": "approx.", "pls": "please", "plz": "please",
+    "pls": "please", "plz": "please",
     "wil": "will", "woud": "would", "shoud": "should", "coud": "could",
     "defintely": "definitely", "defiantly": "definitely", "definately": "definitely",
     "arival": "arrival", "arrving": "arriving", "arriveing": "arriving",
     "bookng": "booking", "bookig": "booking",
     "grup": "group", "gropu": "group",
-    "deluxx": "deluxe", "delux": "deluxe"
+    "deluxx": "deluxe", "delux": "deluxe",
+    // House-style terms seen in real reports:
+    "incharge": "in-charge", "offeres": "offers", "offeras": "offers",
+    "dont": "don't", "cant": "can't", "wont": "won't", "didnt": "didn't",
+    "nrf": "NRF"
   };
 
   function cleanText(raw) {
@@ -370,12 +374,17 @@
   // ======================================================================
   function cleanAgencyName(name) {
     name = String(name || "").trim().replace(/\s{2,}/g, " ");
-    // Title-case words that are all-lower; leave existing caps/acronyms alone.
-    return name.split(" ").map(function (w) {
-      if (!w) return w;
-      if (w === w.toLowerCase()) return w.charAt(0).toUpperCase() + w.slice(1);
-      return w;
-    }).join(" ");
+    if (!name) return name;
+    // Only normalise casing when the WHOLE name was typed in lower case
+    // (e.g. "sunrise travels" -> "Sunrise Travels"). If any word already
+    // carries a capital, the user styled it deliberately (e.g. "Nugios tech",
+    // "Nexus DMC") — leave it exactly as written.
+    if (name === name.toLowerCase()) {
+      return name.split(" ").map(function (w) {
+        return w ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+      }).join(" ");
+    }
+    return name;
   }
 
   function buildEntry(agency, notes, rates) {
@@ -386,8 +395,8 @@
     var cleanRates = (rates || "").trim();
 
     if (cleanRates) {
-      // Keep rate/inquiry details verbatim (just trim) so numbers are untouched;
-      // append as a clearly labelled clause.
+      // Keep rate/inquiry details verbatim (just collapse whitespace) so every
+      // number, rate, pax count and date stays byte-for-byte identical.
       cleanRates = cleanRates.replace(/\s*\n\s*/g, " ").replace(/[ \t]{2,}/g, " ").trim();
       if (body) {
         body = body.replace(/[.]$/, "") + ". Inquiry details: " + cleanRates + ".";
@@ -396,7 +405,7 @@
       }
     }
 
-    if (!body) body = "Visited — no additional notes.";
+    if (!body) body = "Visited and met — no additional notes.";
 
     return { agency: agency, body: body };
   }
@@ -548,13 +557,13 @@
   // Example
   $("loadExample").addEventListener("click", function () {
     $("bulkInput").value =
-      "Sunrise Travels\n" +
-      "met with ravi, intrested in group booking for 25 pax arriving 12 nov, needs 12 rooms, quoted INR 4500 per night\n\n" +
-      "Globe Tours\n" +
-      "follwup on earlier enquiry, wants deluxx rooms for 4 nights in dec, pricing to be shared\n\n" +
-      "Horizon Holidays - casual visit, no new leads but they wil revert nxt wk\n\n" +
-      "Agency: Blue Sky Vacations\n" +
-      "discusssed corporate tie-up, 50 pax MICE group for Q1, Rates: INR 6200/room/night, 30 rooms, 3 nights";
+      "Holidays World – Visited and met operation manager he advised that inquiries there for Nov, and October as of now looks slow. Also special rates has been given for Oct and Nov in order to get some bookings from them.\n\n" +
+      "Nugios tech – Visited and met the incharge, and currently only FIT teams working and currently they dont have much business for Dubai, However he will Contracting team to load the rates.\n\n" +
+      "Dahr – Visited and met Director of Sales and talked about current situation. special rates has been offered AED 220/240 and requested to push for all market this rates.\n\n" +
+      "Otelseasy – Discussed with contracting incharge and they advised they were not operating fully. Special rates given until 10th Oct in order to get some share from them. until 10th Oct AED 200 RO and AED 225 BB - NRF 5% discount.\n\n" +
+      "Arabian Journey – Discussed with group incharge\n10-23 Nov\n5 pax\n2 Room + 1 extra bed\nBreakfast + Dinner and rates, i have offered AED 275+15 with meal charges.\n\n" +
+      "Retaj Tourism – Discussed with Sales person and they have inquiry for 9 nov to 11 nov\n23 pax\n12 rooms and rates given AED 260+15 offered in order to match with other hotel rates.\n\n" +
+      "Al Hadaf – Disscussed with Sales, and special rates given for Oct and currently she have one FIT inquiry and rates given 250+15 for Oct, also requested arrange meeting with her boss, coming week.";
     render(parseBulk($("bulkInput").value));
   });
 
