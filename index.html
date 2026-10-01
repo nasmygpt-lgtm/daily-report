@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Daily Travel Agency Visit Report Generator</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #ffffff;
+    --panel-alt: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --accent-dark: #1d4ed8;
+    --accent-soft: #eff6ff;
+    --green: #16a34a;
+    --radius: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 8px 24px rgba(15,23,42,.06);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #eef2f7 0%, #f8fafc 100%);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 24px 16px 64px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  header.app-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  header.app-header h1 {
+    font-size: 1.6rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+  }
+  header.app-header p { color: var(--muted); margin: 0; font-size: .95rem; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+  }
+  .card h2 {
+    font-size: 1.02rem;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card .hint { color: var(--muted); font-size: .82rem; margin: 0 0 16px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; background: var(--panel-alt); padding: 4px; border-radius: 10px; }
+  .tab-btn {
+    flex: 1; border: none; background: transparent; padding: 9px 10px;
+    border-radius: 7px; cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--muted);
+    transition: all .15s;
+  }
+  .tab-btn.active { background: var(--panel); color: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+  label { display: block; font-size: .8rem; font-weight: 600; color: var(--text); margin: 0 0 5px; }
+  .field { margin-bottom: 14px; }
+  input[type="text"], textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 9px; font-size: .92rem; font-family: inherit; color: var(--text);
+    background: #fff; transition: border-color .15s, box-shadow .15s; resize: vertical;
+  }
+  input[type="text"]:focus, textarea:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  }
+  textarea { min-height: 90px; line-height: 1.45; }
+  textarea.bulk { min-height: 220px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; }
+
+  .btn {
+    appearance: none; border: none; cursor: pointer; font-weight: 600; font-size: .9rem;
+    padding: 10px 16px; border-radius: 9px; transition: background .15s, transform .05s;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-ghost { background: var(--panel-alt); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: #eef2f7; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+
+  .example-link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: .8rem; padding: 0; text-decoration: underline; }
+
+  /* Output */
+  .out-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .count-pill { font-size: .76rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 3px 10px; border-radius: 999px; }
+  #output {
+    background: var(--panel-alt); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; min-height: 220px; font-size: .92rem; line-height: 1.65;
+    white-space: normal; overflow-wrap: break-word;
+  }
+  #output p { margin: 0 0 12px; }
+  #output p:last-child { margin-bottom: 0; }
+  #output .agency { font-weight: 700; }
+  .empty-state { color: var(--muted); font-style: italic; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--green); color: #fff; padding: 11px 22px; border-radius: 999px;
+    font-size: .9rem; font-weight: 600; opacity: 0; pointer-events: none; transition: all .25s;
+    box-shadow: 0 8px 24px rgba(22,163,74,.35);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .entries-list { margin: 14px 0 0; padding: 0; list-style: none; }
+  .entries-list li {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: var(--panel-alt); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; margin-bottom: 7px; font-size: .85rem;
+  }
+  .entries-list li .name { font-weight: 700; }
+  .entries-list li button { background: none; border: none; color: #dc2626; cursor: pointer; font-size: .95rem; line-height: 1; }
+  .section-divider { height: 1px; background: var(--border); margin: 18px 0; border: none; }
+  .mode-note { font-size: .78rem; color: var(--muted); margin-top: 10px; }
+  footer.foot { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 32px; }
+  kbd { background:#f1f5f9; border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-size:.75rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app-header">
+    <h1>🏨 Daily Travel Agency Visit Report</h1>
+    <p>Paste or type your agency visit notes — get a clean, email-ready report in seconds.</p>
+  </header>
+
+  <div class="grid">
+    <!-- INPUT -->
+    <section class="card">
+      <h2>✍️ Input</h2>
+      <p class="hint">Clean up spelling &amp; grammar automatically — numbers, rates, dates &amp; pax are preserved exactly.</p>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="bulk" type="button">Paste Raw Notes</button>
+        <button class="tab-btn" data-tab="fields" type="button">Structured Fields</button>
+      </div>
+
+      <!-- Bulk paste mode -->
+      <div id="tab-bulk">
+        <div class="field">
+          <label for="bulkInput">Raw visit notes (one block per agency)</label>
+          <textarea id="bulkInput" class="bulk" placeholder="Sunrise Travels&#10;met with ravi, intrested in group booking for 25 pax arriving 12 nov, needs 12 rooms, quoted INR 4500 per night&#10;&#10;Globe Tours&#10;follwup on earlier enquiry, wants deluxe rooms for 4 nights in dec, pricing to be shared&#10;&#10;Horizon Holidays - casual visit, no new leads but they will revert next week"></textarea>
+          <p class="mode-note">Separate agencies with a <strong>blank line</strong>. First line = agency name (or use <code>Agency: Name</code>). You can also write <code>Agency – notes</code> on one line.</p>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="generateBulk" type="button">Generate Report →</button>
+          <button class="example-link" id="loadExample" type="button">Load example</button>
+        </div>
+      </div>
+
+      <!-- Structured fields mode -->
+      <div id="tab-fields" style="display:none;">
+        <div class="field">
+          <label for="fAgency">Agency Name *</label>
+          <input type="text" id="fAgency" placeholder="e.g. Sunrise Travels" />
+        </div>
+        <div class="field">
+          <label for="fNotes">Meeting Notes / Discussion *</label>
+          <textarea id="fNotes" placeholder="e.g. met with ravi, intrested in group booking, will revert next week"></textarea>
+        </div>
+        <div class="field">
+          <label for="fRates">Rates / Inquiry Details <span style="color:var(--muted);font-weight:400;">(optional — pax, dates, room counts, pricing)</span></label>
+          <textarea id="fRates" placeholder="e.g. 25 pax, arriving 12 Nov, 12 rooms, INR 4500/night" style="min-height:60px;"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="addEntry" type="button">+ Add Agency</button>
+          <button class="btn btn-ghost" id="clearFields" type="button">Clear</button>
+        </div>
+
+        <ul class="entries-list" id="entriesList"></ul>
+      </div>
+
+      <hr class="section-divider" />
+      <button class="btn btn-ghost" id="clearAll" type="button" style="width:100%;">Clear Everything</button>
+    </section>
+
+    <!-- OUTPUT -->
+    <section class="card">
+      <div class="out-head">
+        <h2 style="margin:0;">📋 Compiled Report</h2>
+        <span class="count-pill" id="countPill">0 agencies</span>
+      </div>
+      <div id="output"><span class="empty-state">Your formatted report will appear here…</span></div>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn btn-primary" id="copyRich" type="button">📋 Copy (formatted)</button>
+        <button class="btn btn-ghost" id="copyPlain" type="button">Copy as Markdown</button>
+      </div>
+    </section>
+  </div>
+
+  <footer class="foot">
+    Runs entirely in your browser — nothing is uploaded. &nbsp;•&nbsp; <strong>Agency Name</strong> is bolded, followed by an em-dash (–).
+  </footer>
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ----- State -----
+  var fieldEntries = []; // {agency, notes, rates}
+  var lastEntries = [];  // last generated set (for copy)
+
+  // ----- Element refs -----
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ======================================================================
+  //  TEXT CLEANUP
+  //  Conservative, deterministic cleanup. We ONLY fix spelling, spacing,
+  //  casing and punctuation. We never touch digits, so rates / pax / dates
+  //  / room counts / prices stay byte-for-byte identical.
+  // ======================================================================
+  var SPELLING = {
+    "intrested": "interested", "intersted": "interested",
+    "follwup": "follow-up", "followup": "follow-up", "follw": "follow",
+    "enquiry": "inquiry", "enquiries": "inquiries",
+    "recieve": "receive", "recieved": "received",
+    "seperate": "separate", "seperated": "separate",
+    "discuss": "discuss", "discss": "discuss", "discusssed": "discussed", "discussd": "discussed",
+    "accomodation": "accommodation", "accomdation": "accommodation",
+    "availabe": "available", "availble": "available", "avaliable": "available",
+    "confirmd": "confirmed", "confrim": "confirm", "confirmd": "confirmed",
+    "negotiaton": "negotiation", "negotiat": "negotiate",
+    "cmpany": "company", "compny": "company",
+    "possibe": "possible", "possiblity": "possibility",
+    "requirment": "requirement", "requirements": "requirements", "requirment": "requirement",
+    "aproached": "approached", "approch": "approach",
+    "quotd": "quoted", "qoute": "quote", "qouted": "quoted",
+    "revrt": "revert", "reverrt": "revert",
+    "nxt": "next", "wk": "week",
+    "intersed": "interested",
+    "mgmt": "management", "mgr": "manager",
+    "approx": "approx.", "pls": "please", "plz": "please",
+    "wil": "will", "woud": "would", "shoud": "should", "coud": "could",
+    "defintely": "definitely", "defiantly": "definitely", "definately": "definitely",
+    "arival": "arrival", "arrving": "arriving", "arriveing": "arriving",
+    "bookng": "booking", "bookig": "booking",
+    "grup": "group", "gropu": "group",
+    "deluxx": "deluxe", "delux": "deluxe"
+  };
+
+  function cleanText(raw) {
+    if (!raw) return "";
+    var text = String(raw);
+
+    // Normalise whitespace & line breaks within a note into single spaces.
+    text = text.replace(/\s*\n\s*/g, " ");
+    text = text.replace(/[ \t]{2,}/g, " ");
+    text = text.trim();
+
+    // Fix spacing around punctuation (don't touch decimals like 4.5 or 4,500).
+    text = text.replace(/\s+([,;:.!?])/g, "$1");           // no space before punctuation
+    text = text.replace(/([,;:])(?=[^\s\d])/g, "$1 ");      // space after , ; : unless a digit follows (4,500)
+    text = text.replace(/([.!?])(?=[A-Za-z])/g, "$1 ");     // space after sentence punctuation before a letter
+
+    // Spelling corrections — word-boundary, case-insensitive, preserve leading capitalisation.
+    Object.keys(SPELLING).forEach(function (bad) {
+      var re = new RegExp("\\b" + bad + "\\b", "gi");
+      text = text.replace(re, function (m) {
+        var good = SPELLING[bad];
+        // Preserve capitalisation of the original first letter.
+        if (m[0] === m[0].toUpperCase()) {
+          return good.charAt(0).toUpperCase() + good.slice(1);
+        }
+        return good;
+      });
+    });
+
+    // Capitalise first letter of the whole note.
+    text = text.replace(/^([a-z])/, function (_, c) { return c.toUpperCase(); });
+
+    // Capitalise standalone "i" -> "I".
+    text = text.replace(/\bi\b/g, "I");
+
+    // Collapse any doubled spaces introduced above.
+    text = text.replace(/[ \t]{2,}/g, " ").trim();
+
+    // Ensure the note ends with terminal punctuation.
+    if (text && !/[.!?]$/.test(text)) {
+      text += ".";
+    }
+    return text;
+  }
+
+  // ======================================================================
+  //  PARSING raw bulk input into [{agency, notes, rates}]
+  // ======================================================================
+  function parseBulk(raw) {
+    var blocks = String(raw)
+      .replace(/\r\n/g, "\n")
+      .split(/\n\s*\n+/)        // split on blank line(s)
+      .map(function (b) { return b.trim(); })
+      .filter(Boolean);
+
+    var out = [];
+    blocks.forEach(function (block) {
+      var parsed = parseBlock(block);
+      if (parsed) out.push(parsed);
+    });
+    return out;
+  }
+
+  function parseBlock(block) {
+    var lines = block.split("\n").map(function (l) { return l.trim(); }).filter(Boolean);
+    if (!lines.length) return null;
+
+    var agency = "";
+    var noteLines = [];
+
+    // Case A: "Agency: Name" label on first line.
+    var labelMatch = lines[0].match(/^(?:agency|client|company)\s*[:\-]\s*(.+)$/i);
+
+    // Case B: "Agency Name - notes" or "Agency Name – notes" on a single line.
+    var inlineMatch = !labelMatch && lines.length === 1
+      ? lines[0].match(/^(.{2,60}?)\s+[\-–—]\s+(.+)$/)
+      : null;
+
+    if (labelMatch) {
+      agency = labelMatch[1].trim();
+      noteLines = lines.slice(1);
+    } else if (inlineMatch) {
+      agency = inlineMatch[1].trim();
+      noteLines = [inlineMatch[2].trim()];
+    } else {
+      // Case C: first line is the agency, remaining lines are notes.
+      // If the first line itself contains " - "/" – ", treat the left part as agency.
+      var firstSplit = lines[0].match(/^(.{2,60}?)\s+[\-–—]\s+(.+)$/);
+      if (firstSplit) {
+        agency = firstSplit[1].trim();
+        noteLines = [firstSplit[2].trim()].concat(lines.slice(1));
+      } else {
+        agency = lines[0];
+        noteLines = lines.slice(1);
+      }
+    }
+
+    // Pull out an explicit "Rates:" / "Inquiry:" labelled line if present.
+    var rates = "";
+    noteLines = noteLines.filter(function (l) {
+      var m = l.match(/^(?:rates?|rate|inquiry|enquiry|pricing|details)\s*[:\-]\s*(.+)$/i);
+      if (m) { rates = rates ? rates + "; " + m[1].trim() : m[1].trim(); return false; }
+      return true;
+    });
+
+    var notes = noteLines.join(" ");
+    return buildEntry(agency, notes, rates);
+  }
+
+  // ======================================================================
+  //  Build a normalised entry object with a cleaned, combined body.
+  // ======================================================================
+  function cleanAgencyName(name) {
+    name = String(name || "").trim().replace(/\s{2,}/g, " ");
+    // Title-case words that are all-lower; leave existing caps/acronyms alone.
+    return name.split(" ").map(function (w) {
+      if (!w) return w;
+      if (w === w.toLowerCase()) return w.charAt(0).toUpperCase() + w.slice(1);
+      return w;
+    }).join(" ");
+  }
+
+  function buildEntry(agency, notes, rates) {
+    agency = cleanAgencyName(agency);
+    if (!agency) return null;
+
+    var body = cleanText(notes || "");
+    var cleanRates = (rates || "").trim();
+
+    if (cleanRates) {
+      // Keep rate/inquiry details verbatim (just trim) so numbers are untouched;
+      // append as a clearly labelled clause.
+      cleanRates = cleanRates.replace(/\s*\n\s*/g, " ").replace(/[ \t]{2,}/g, " ").trim();
+      if (body) {
+        body = body.replace(/[.]$/, "") + ". Inquiry details: " + cleanRates + ".";
+      } else {
+        body = "Inquiry details: " + cleanRates + ".";
+      }
+    }
+
+    if (!body) body = "Visited — no additional notes.";
+
+    return { agency: agency, body: body };
+  }
+
+  // ======================================================================
+  //  RENDER
+  // ======================================================================
+  function render(entries) {
+    lastEntries = entries;
+    var out = $("output");
+    var pill = $("countPill");
+    pill.textContent = entries.length + " " + (entries.length === 1 ? "agency" : "agencies");
+
+    if (!entries.length) {
+      out.innerHTML = '<span class="empty-state">Your formatted report will appear here…</span>';
+      return;
+    }
+    out.innerHTML = entries.map(function (e) {
+      return '<p><span class="agency">' + escapeHtml(e.agency) + '</span> – ' + escapeHtml(e.body) + '</p>';
+    }).join("");
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function toMarkdown(entries) {
+    return entries.map(function (e) {
+      return "**" + e.agency + "** – " + e.body;
+    }).join("\n\n");
+  }
+
+  // ======================================================================
+  //  COPY (rich HTML + plain-text fallback)
+  // ======================================================================
+  function showToast(msg) {
+    var t = $("toast");
+    t.textContent = msg || "Copied!";
+    t.classList.add("show");
+    setTimeout(function () { t.classList.remove("show"); }, 1600);
+  }
+
+  function copyRich() {
+    if (!lastEntries.length) { showToast("Nothing to copy yet"); return; }
+    var html = lastEntries.map(function (e) {
+      return "<p><strong>" + escapeHtml(e.agency) + "</strong> &ndash; " + escapeHtml(e.body) + "</p>";
+    }).join("");
+    var plain = toMarkdown(lastEntries);
+
+    if (navigator.clipboard && window.ClipboardItem) {
+      var data = new ClipboardItem({
+        "text/html": new Blob([html], { type: "text/html" }),
+        "text/plain": new Blob([plain], { type: "text/plain" })
+      });
+      navigator.clipboard.write([data]).then(
+        function () { showToast("Copied — ready to paste!"); },
+        function () { copyPlainFallback(plain); }
+      );
+    } else {
+      copyPlainFallback(plain);
+    }
+  }
+
+  function copyPlain() {
+    if (!lastEntries.length) { showToast("Nothing to copy yet"); return; }
+    copyPlainFallback(toMarkdown(lastEntries));
+  }
+
+  function copyPlainFallback(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { showToast("Copied as Markdown!"); },
+        function () { legacyCopy(text); }
+      );
+    } else {
+      legacyCopy(text);
+    }
+  }
+
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); showToast("Copied!"); }
+    catch (e) { showToast("Copy failed — select manually"); }
+    document.body.removeChild(ta);
+  }
+
+  // ======================================================================
+  //  STRUCTURED-FIELDS mode
+  // ======================================================================
+  function renderEntriesList() {
+    var ul = $("entriesList");
+    ul.innerHTML = fieldEntries.map(function (e, i) {
+      return '<li><span class="name">' + escapeHtml(e.agency) + '</span>' +
+             '<button type="button" data-i="' + i + '" title="Remove">✕</button></li>';
+    }).join("");
+    Array.prototype.forEach.call(ul.querySelectorAll("button"), function (b) {
+      b.addEventListener("click", function () {
+        fieldEntries.splice(parseInt(b.getAttribute("data-i"), 10), 1);
+        renderEntriesList();
+        regenerateFromFields();
+      });
+    });
+  }
+
+  function regenerateFromFields() {
+    var built = fieldEntries.map(function (e) {
+      return buildEntry(e.agency, e.notes, e.rates);
+    }).filter(Boolean);
+    render(built);
+  }
+
+  // ======================================================================
+  //  WIRING
+  // ======================================================================
+  // Tabs
+  Array.prototype.forEach.call(document.querySelectorAll(".tab-btn"), function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      var tab = btn.getAttribute("data-tab");
+      $("tab-bulk").style.display = tab === "bulk" ? "" : "none";
+      $("tab-fields").style.display = tab === "fields" ? "" : "none";
+    });
+  });
+
+  // Bulk generate
+  $("generateBulk").addEventListener("click", function () {
+    var entries = parseBulk($("bulkInput").value);
+    render(entries);
+    if (!entries.length) showToast("Nothing to parse — add some notes");
+  });
+
+  // Live update as you type in bulk mode (debounced)
+  var debounceTimer;
+  $("bulkInput").addEventListener("input", function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () {
+      render(parseBulk($("bulkInput").value));
+    }, 350);
+  });
+
+  // Example
+  $("loadExample").addEventListener("click", function () {
+    $("bulkInput").value =
+      "Sunrise Travels\n" +
+      "met with ravi, intrested in group booking for 25 pax arriving 12 nov, needs 12 rooms, quoted INR 4500 per night\n\n" +
+      "Globe Tours\n" +
+      "follwup on earlier enquiry, wants deluxx rooms for 4 nights in dec, pricing to be shared\n\n" +
+      "Horizon Holidays - casual visit, no new leads but they wil revert nxt wk\n\n" +
+      "Agency: Blue Sky Vacations\n" +
+      "discusssed corporate tie-up, 50 pax MICE group for Q1, Rates: INR 6200/room/night, 30 rooms, 3 nights";
+    render(parseBulk($("bulkInput").value));
+  });
+
+  // Structured add
+  $("addEntry").addEventListener("click", function () {
+    var agency = $("fAgency").value.trim();
+    var notes = $("fNotes").value.trim();
+    var rates = $("fRates").value.trim();
+    if (!agency) { showToast("Agency name is required"); $("fAgency").focus(); return; }
+    fieldEntries.push({ agency: agency, notes: notes, rates: rates });
+    $("fAgency").value = ""; $("fNotes").value = ""; $("fRates").value = "";
+    $("fAgency").focus();
+    renderEntriesList();
+    regenerateFromFields();
+  });
+
+  $("clearFields").addEventListener("click", function () {
+    $("fAgency").value = ""; $("fNotes").value = ""; $("fRates").value = "";
+    $("fAgency").focus();
+  });
+
+  // Copy buttons
+  $("copyRich").addEventListener("click", copyRich);
+  $("copyPlain").addEventListener("click", copyPlain);
+
+  // Clear all
+  $("clearAll").addEventListener("click", function () {
+    fieldEntries = [];
+    $("bulkInput").value = "";
+    $("fAgency").value = ""; $("fNotes").value = ""; $("fRates").value = "";
+    renderEntriesList();
+    render([]);
+  });
+})();
+</script>
+</body>
+</html>
