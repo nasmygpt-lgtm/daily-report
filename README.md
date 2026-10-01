@@ -33,9 +33,11 @@ It is tuned to the sales manager's existing **house report style**:
   `INR 6200/room/night, 30 rooms, 3 nights`, `USD 1,250.50`) pass through
   byte-for-byte.
 - **One-click copy**
-  - **Copy (formatted)** — rich HTML, so bold names paste straight into
-    Gmail / Outlook / Slack.
+  - **Copy (formatted)** — rich HTML of the whole report, so bold names paste
+    straight into Gmail / Outlook / Slack.
   - **Copy as Markdown** — plain `**Name** – text` for Markdown-aware chat.
+  - **Per-agency copy** — every entry in the output has its own **📋 Copy**
+    button, so you can grab a single agency's formatted line on its own.
 - **Live preview** as you type (bulk mode), an agency counter, per-entry
   removal, a *Load example* button, and a fully responsive layout.
 
